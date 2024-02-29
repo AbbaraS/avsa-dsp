@@ -20,6 +20,7 @@ class Adc:
                 self.Index="PCF8591"
             else:
                 self.Index="ADS7830" 
+                
     def analogReadPCF8591(self,chn):#PCF8591 read ADC value,chn:0,1,2,3
         value=[0,0,0,0,0,0,0,0,0]
         for i in range(9):
@@ -39,6 +40,7 @@ class Adc:
         voltage = value1 / 256.0 * 3.3  #calculate the voltage value
         voltage = round(voltage,2)
         return voltage
+    
     def recvADS7830(self,channel):
         """Select the Command data from the given provided value above"""
         COMMAND_SET = self.ADS7830_CMD | ((((channel<<2)|(channel>>1))&0x07)<<4)
@@ -53,11 +55,13 @@ class Adc:
         return voltage
         
     def recvADC(self,channel):
-        if self.Index=="PCF8591":
+        print(self.Index)
+        if self.Index=="PCF8591": ## this is my index
             data=self.recvPCF8591(channel)
         elif self.Index=="ADS7830":
             data=self.recvADS7830(channel)
         return data
+    
     def i2cClose(self):
         self.bus.close()
 
@@ -72,8 +76,10 @@ def loop():
         print (Power)
         time.sleep(1)
         print ('----')
+
 def destroy():
     pass
+
 # Main program logic follows:
 if __name__ == '__main__':
     print ('Program is starting ... ')

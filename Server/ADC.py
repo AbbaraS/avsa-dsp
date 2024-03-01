@@ -29,7 +29,8 @@ class Adc:
         return value[4]   
         
     def analogWritePCF8591(self,value):#PCF8591 write DAC value
-        self.bus.write_byte_data(self.ADDRESS,cmd,value)
+        #self.bus.write_byte_data(self.ADDRESS,cmd,value)
+        self.bus.write_byte_data(self.ADDRESS,self.PCF8591_CMD,value)
         
     def recvPCF8591(self,channel):#PCF8591 write DAC value
         while(1):
@@ -55,8 +56,7 @@ class Adc:
         return voltage
         
     def recvADC(self,channel):
-        print(self.Index)
-        if self.Index=="PCF8591": ## this is my index
+        if self.Index=="PCF8591": 
             data=self.recvPCF8591(channel)
         elif self.Index=="ADS7830":
             data=self.recvADS7830(channel)

@@ -1,33 +1,39 @@
 import sys
 sys.path.insert(0, '/home/pi/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server')
-
+from log import log
 from Ultrasonic import *
-from ADC import Adc
+from battery import read_battery
+import datetime
 
-def read_battery():
-    adc = Adc()
-    Left_IDR=adc.recvADC(0) 
-    Right_IDR=adc.recvADC(1)
-    Power=adc.recvADC(2)*3
-    print(f"left={Left_IDR} right={Right_IDR} power={Power}")
+now=datetime.datetime.now()
 
 def task1():
-    print("task 1")
-    
-    read_battery()
-    
-    ultrasonic=Ultrasonic() 
-    
-    distance_cm = ultrasonic.get_distance()
+    log("task 1")
+    moveAV = True
+    us=Ultrasonic() 
+    now=datetime.datetime.now()
+    t2=now.strftime("%H-%M-%s")
+    start_s = int(now.strftime("%s"))
     try:
-        while True:
+        while moveAV:
+            #read battery every 10 seconds
+            now=datetime.datetime.now()
+            s = int(now.strftime("%s"))
+            interval = start_s
+            if s == interval:
+                BV, BP = read_battery()
+                interval = interval + 10 #read battery every 10 s
+            
             distance_cm = ultrasonic.get_distance()
             print(distance_cm)
             if distance_cm > 30:
-                PWM.setMotorModel(2000,2000,2000,2000)
+                PWM.setMotorModel(1000,1000,1000,1000)
             else:
                 PWM.setMotorModel(0,0,0,0)
+                moveAV = False
+        read_battery()
     except KeyboardInterrupt: 
+        read_battery()
         PWM.setMotorModel(0,0,0,0)   
         
     

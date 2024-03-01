@@ -9,6 +9,7 @@ class Motor:
         self.pwm.setPWMFreq(50)
         self.time_proportion = 3     #Depend on your own car,If you want to get the best out of the rotation mode, change the value by experimenting.
         self.adc = Adc()
+    
     def duty_range(self,duty1,duty2,duty3,duty4):
         if duty1>4095:
             duty1=4095
@@ -41,6 +42,7 @@ class Motor:
         else:
             self.pwm.setMotorPwm(0,4095)
             self.pwm.setMotorPwm(1,4095)
+            
     def left_Lower_Wheel(self,duty):
         if duty>0:
             self.pwm.setMotorPwm(3,0)
@@ -51,6 +53,7 @@ class Motor:
         else:
             self.pwm.setMotorPwm(2,4095)
             self.pwm.setMotorPwm(3,4095)
+            
     def right_Upper_Wheel(self,duty):
         if duty>0:
             self.pwm.setMotorPwm(6,0)
@@ -61,6 +64,7 @@ class Motor:
         else:
             self.pwm.setMotorPwm(6,4095)
             self.pwm.setMotorPwm(7,4095)
+            
     def right_Lower_Wheel(self,duty):
         if duty>0:
             self.pwm.setMotorPwm(4,0)

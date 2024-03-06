@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO
 import time
+from log import log
 
 class SensorInput:
     def __init__(self):
@@ -51,22 +52,49 @@ class SensorInput:
         return LMR
 
     def sensor_fusion(self):
-        while True:
+            #GPIO.cleanup()
+        #while True:
             distance = self.get_distance()
             LMR = self.read_IR_sensors()
-            
+            action = ''
+            direction = ''
             # Basic Sensor Fusion Algorithm
             if distance < 30:  # If obstacle is closer than 30cm, stop
                 print("Obstacle detected, stopping.")
-                # PWM.setMotorModel(0,0,0,0)
-            elif LMR in [2, 4, 6]:  # Line detected
+
+                action = 'decide'
+                direction = 'Stop'
+                log(f'sensor fusion, ultrasound, {distance}, {action}, {direction}')
+            elif LMR in [2, 4, 1]:  # Line detected
                 print("Following line")
-                # Adjust PWM settings based on LMR to follow the line
-            elif LMR == 7:  # No line detected
-                print("Searching for line")
-                # Adjust PWM to search for the line
+
+                action = 'move'
+                if LMR == 2:
+                    direction = 'forward'
+                elif LMR == 4:
+                    direction = 'left'
+                elif LMR == 1:
+                    direction = 'right'
+                    
+            elif LMR in [6, 3]: # 2 sensors detected line - decision needs to happen
+                print("two paths available")
+                action = 'decide'
+                direction = 'Stop'
+            elif LMR == 7:  # 3 sensors detected the line - decision needs to happen
+                print("three paths available")
+                action = 'decide'
+                direction = 'Stop'
+            elif LMR == 0:
+                print('lost line')
+                action = 'decide'
+                direction = 'Stop'
             else:
                 print("Default action")
                 # Define a default action
-                
-            time.sleep(0.1)  # Small delay to prevent overloading
+                action = 'decide'
+                direction = 'Stop'
+            
+            log(f'sensor fusion, ir, {LMR}, {action}, {direction}') 
+            #time.sleep(0.1)  # Small delay to prevent overloading
+            
+            return action, direction

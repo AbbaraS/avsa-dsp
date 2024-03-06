@@ -18,7 +18,7 @@ def read_battery():
     
     percentage_left = max(0, min(100, percentage_left))
     
-    log(f'{battery_voltage}, {percentage_left}', 'b')    
+    log(f'battery, {battery_voltage}, {percentage_left}')    
     
     return battery_voltage, percentage_left
 

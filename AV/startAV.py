@@ -1,41 +1,53 @@
 import sys
 sys.path.insert(0, '/home/pi/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server')
 from log import log
-from Ultrasonic import *
+from sensor_fusion import SensorInput
 from battery import read_battery
 import datetime
+from Motor import *         
+import time
+import RPi.GPIO as GPIO
 
+
+PWM=Motor() 
 now=datetime.datetime.now()
 
 def task1():
     log("task 1")
     moveAV = True
-    us=Ultrasonic() 
-    now=datetime.datetime.now()
-    t2=now.strftime("%H-%M-%s")
-    start_s = int(now.strftime("%s"))
+    si = SensorInput()
+    PWM=Motor() 
     try:
         while moveAV:
-            #read battery every 10 seconds
-            now=datetime.datetime.now()
-            s = int(now.strftime("%s"))
-            interval = start_s
-            if s == interval:
-                BV, BP = read_battery()
-                interval = interval + 10 #read battery every 10 s
+            BV, BP = read_battery()
+            action, direction = si.sensor_fusion()
             
-            distance_cm = ultrasonic.get_distance()
-            print(distance_cm)
-            if distance_cm > 30:
-                PWM.setMotorModel(1000,1000,1000,1000)
-            else:
-                PWM.setMotorModel(0,0,0,0)
+            if action == 'move':
+                moveAV = True
+                if direction == 'forward':
+                    PWM.setMotorModel(800,800,800,800)
+                elif direction == 'right':
+                    PWM.setMotorModel(800,800,-800,-800)
+                elif direction == 'left':
+                    PWM.setMotorModel(-800,-800,800,800)
+                    
+            elif action == 'decide':
                 moveAV = False
-        read_battery()
+                PWM.setMotorModel(0,0,0,0)
+            
+            log("sleeping")  
+            time.sleep(2.2)
+            PWM.setMotorModel(0,0,0,0)
+            #break
+            
     except KeyboardInterrupt: 
         read_battery()
+        GPIO.cleanup()
         PWM.setMotorModel(0,0,0,0)   
         
+def stop():
+    GPIO.cleanup()
+    PWM.setMotorModel(0,0,0,0)
     
 # Main program logic follows:
 if __name__ == '__main__':
@@ -47,3 +59,5 @@ if __name__ == '__main__':
         exit() 
     if sys.argv[1] == 'task1':
         task1()
+    elif sys.argv[1] == 'stop':
+        stop()

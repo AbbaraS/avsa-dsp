@@ -18,11 +18,11 @@ class Servo:
         angle=int(angle)
         
         if channel=='0':
-            print(f"chanel 0: {2500-int((angle+error)/0.09)}")
+            #print(f"chanel 0: {2500-int((angle+error)/0.09)}")
             self.PwmServo.setServoPulse(8,2500-int((angle+error)/0.09))
         
         elif channel=='1':
-            print(f"chanel 0: {2500-int((angle+error)/0.09)}")
+            #print(f"chanel 0: {2500-int((angle+error)/0.09)}")
             self.PwmServo.setServoPulse(9,500+int((angle+error)/0.09))
         
         elif channel=='2':

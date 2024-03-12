@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO
 import time
 from log import log
+from servo import *
 
 class SensorInput:
     def __init__(self):
@@ -51,8 +52,8 @@ class SensorInput:
         if GPIO.input(self.IR03): LMR |= 1  # Right
         return LMR
 
-    def sensor_fusion(self):
-            #GPIO.cleanup()
+    def sensor_fusion1(self):
+        #GPIO.cleanup()
         #while True:
             distance = self.get_distance()
             LMR = self.read_IR_sensors()
@@ -63,7 +64,7 @@ class SensorInput:
                 print("Obstacle detected, stopping.")
 
                 action = 'decide'
-                direction = 'Stop'
+                direction = 'stop'
                 log(f'sensor fusion, ultrasound, {distance}, {action}, {direction}')
             elif LMR in [2, 4, 1]:  # Line detected
                 print("Following line")
@@ -98,3 +99,6 @@ class SensorInput:
             #time.sleep(0.1)  # Small delay to prevent overloading
             
             return action, direction
+        
+    def task(self):
+        

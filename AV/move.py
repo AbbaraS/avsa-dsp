@@ -12,6 +12,10 @@ import datetime
 
 class RunAV:
     def __init__(self):
+        
+        # 
+        self.avoiding_obstacle = False
+        
         # Infrared Sensors
         self.IR01 = 14  # Left
         self.IR02 = 15  # Middle
@@ -29,6 +33,8 @@ class RunAV:
         GPIO.setup([self.IR01, self.IR02, self.IR03], GPIO.IN)
         GPIO.setup(self.trigger_pin, GPIO.OUT)
         GPIO.setup(self.echo_pin, GPIO.IN)
+        
+        
     
     ### infrared ###
     
@@ -37,6 +43,7 @@ class RunAV:
         if GPIO.input(self.IR01): LMR |= 4  # Left
         if GPIO.input(self.IR02): LMR |= 2  # Middle
         if GPIO.input(self.IR03): LMR |= 1  # Right
+        #log(f"LMR={LMR}")
         return LMR
     
     ### movement ###
@@ -72,6 +79,9 @@ class RunAV:
         PWM.setMotorModel(0, 0, 0, 0)
     
     def choose_direction(self, LMR):
+        #log("choosing direction ")
+        self.avoiding_obstacle = False
+        
         if LMR==2: #2 is 010 - middle sensor detected the line
             self.forward()
         elif LMR==4: #4 is 100 - left sensor detected the line, so turn left
@@ -84,34 +94,35 @@ class RunAV:
             self.sharp_right()
         elif LMR==7: #7 is 111 - all sensors detected the line, so stop
             self.stop()
-
-    def rotate(self, target_angle):
-        log(f"Start rotation to target angle {target_angle}")
+        #else:
+            
+    def rotate(self, target_angle, interrupt=False):
+        log(f"start rotation")
         
         angle_rotated = 0
         
         bat_compensation = 7.5/get_battery_voltage()
-        log(f"bat_compensation={bat_compensation}")
+        #log(f"bat_compensation={bat_compensation}")
         
         degrees_per_iteration = 5
         
         motor_time_proportion = 2
         
-        time_to_rotate = 5 * motor_time_proportion * bat_compensation / 1000
-        log(f"time_to_rotate={time_to_rotate}")        
+        time_to_rotate = 2 * degrees_per_iteration * motor_time_proportion * bat_compensation / 1000
+        #log(f"time_to_rotate={time_to_rotate}")        
         
-        W=1700
-        log(f"W={W}")
+        W=1700//2
+        #log(f"W={W}")
         
         rotation_direction = 1 if target_angle  > 0 else -1 
-        log(f"rotation_direction={rotation_direction}")
+        #log(f"rotation_direction={rotation_direction}")
         
         angle = rotation_direction * degrees_per_iteration
-        log(f"angle={angle}")
+        #log(f"angle={angle}")
         
         VY = int(W * math.cos(math.radians(angle)))
         VX = -int(W * math.sin(math.radians(angle)))
-        log(f"VY={VY}, VX={VX}")
+        #log(f"VY={VY}, VX={VX}")
         
         FL = 0-(VY + VX) - W
         BL = 0-(VY - VX) - W
@@ -125,30 +136,46 @@ class RunAV:
             FR = -FR
             BR = -BR
         
-        log(f"FL={FL}, BL={BL}, FR={FR}, BR={BR}")        
-        
+        #log(f"FL={FL}, BL={BL}, FR={FR}, BR={BR}")        
 
+        #start_time = datetime.datetime.now()
+        #loop_n=0
         
-        #time=now.strftime("%H:%M:%s")
-        start_time = datetime.datetime.now()
-        loop_n=0
         while abs(angle_rotated) < abs(target_angle):
-            loop_n +=1
+            #loop_n +=1
 
             PWM.setMotorModel(FL, BL, FR, BR)
-            #log("rotating wheels ")
-            
+
             time.sleep(time_to_rotate)
             
             angle_rotated += rotation_direction * degrees_per_iteration
-            #log(f"angle_rotated={angle_rotated}")
+            
+            if interrupt and abs(angle_rotated) > 20:
+                LMR = self.read_IR_sensors()
+                if LMR != 0x00:
+                    self.stop()
+                    self.avoiding_obstacle = False
+                    log("Line found. Stopping rotation. ")
+                    break
 
-        stop_time = datetime.datetime.now()
-        avg_time = (stop_time-start_time)/loop_n
-        log(f'({stop_time} - {start_time}) / {loop_n} = {avg_time}')
-        self.stop()
-        log(f"Target angle {target_angle} reached. Stopping rotation. ")
-        
+        #stop_time = datetime.datetime.now()
+        #avg_time = (stop_time-start_time)/loop_n
+        #log(f'({stop_time} - {start_time}) / {loop_n} = {avg_time}')
+        if angle_rotated == target_angle:
+            self.stop()
+            log(f"line not found.")
+            
+        log(f"angle rotated {angle_rotated}. ")
+    
+    def rotate_left(self):
+        log(f"rotate left")
+        self.rotate(90, interrupt=True)
+    
+    def rotate_right(self):
+        log(f"rotate right")
+        self.rotate(-90, interrupt=True)
+    
+    
     ### ultrasonic ###
     
     def pulseIn(self, pin, level, timeOut):  # For Ultrasonic
@@ -201,25 +228,25 @@ class RunAV:
     
     def get_us_best_direction(self):
         M = self.get_distance()
-        
+        log(f"get_dis M={M}")
         if M > self.MIN_DISTANCE:
+            self.avoiding_obstacle = False
             return None
         else:
-            log("Obstacle ahead...")
+            self.avoiding_obstacle = True
+            log("obstacle ahead...")
             self.stop()
             #print(f"dir M={M}")
             #log(f"dir M={M}")
             L, M, R = self.check_us_LMR()    
-            time.sleep(0.1)
+            time.sleep(0.05)
             if M > self.MIN_DISTANCE:
                 return None
             elif L > R: 
-                return self.sharp_left
+                return self.rotate_left
             elif R > L:
-                return self.sharp_right
+                return self.rotate_right
             else: 
-                #print("hello? :3")
-                log("hello? :3")
                 return None
     
     ### run ###
@@ -227,22 +254,26 @@ class RunAV:
     def run(self):
         self.pwm_S=Servo()
         self.pwm_S.setServoPwm('0', 105)
-        #self.pwm_S.setServoPwm('1', 90)
+        self.pwm_S.setServoPwm('1', 110)
+
         self.battery_percentage = get_battery_percentage()
-        
-        self.rotate(360)
+
+        while True:
+            
+            move = self.get_us_best_direction()
+            if move is not None:
+                move()
+                #log("moving..")
+            #elif not self.avoiding_obstacle:
+            else:
+                LMR = self.read_IR_sensors()
+                self.choose_direction(LMR)
+            #else:
+            #    log("else in run")
+            #    self.forward()
+            time.sleep(0.05)
         
         GPIO.cleanup()
-        #while True:
-        #    
-        #    move = self.get_us_best_direction()
-        #    if move is not None:
-        #        move()
-        #    else:
-        #        LMR = self.read_IR_sensors()
-        #        self.choose_direction(LMR)
-        #        
-        #    time.sleep(0.1)
         
 
             
@@ -259,6 +290,7 @@ if __name__ == '__main__':
         log("KeyboardInterrupt")
         GPIO.cleanup()
         runAV.pwm_S.setServoPwm('0', 105)
+        runAV.pwm_S.setServoPwm('1', 110)
         PWM.setMotorModel(0,0,0,0)
     except Exception as e:
         print(traceback.format_exc())
@@ -266,4 +298,5 @@ if __name__ == '__main__':
         log(traceback.format_exc())
         PWM.setMotorModel(0,0,0,0)
         runAV.pwm_S.setServoPwm('0', 105)
+        runAV.pwm_S.setServoPwm('1', 110)
         exit()

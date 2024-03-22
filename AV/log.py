@@ -21,7 +21,7 @@ log_file = f"{path}\{t}.txt"
 def log(log_txt):
     now=datetime.datetime.now()
     now_time=now.strftime("%H:%M:%S")
-    with open(f'{path}/move.txt', "a") as file:
+    with open(f'{path}/move2.txt', "a") as file:
         file.write(f'{now_time}, {log_txt}\n')
 
     

@@ -94,6 +94,7 @@ class Led:
                 time.sleep(wait_ms/1000.0)
                 for i in range(0, strip.numPixels(), 3):
                     strip.setPixelColor(i+q, 0)
+    
     def ledIndex(self,index,R,G,B):
         color=self.LED_TYPR(self.ORDER,Color(R,G,B))
         for i in range(8):
@@ -101,6 +102,7 @@ class Led:
                 self.strip.setPixelColor(i,color)
                 self.strip.show()
             index=index >> 1
+    
     def ledMode(self,n):
         self.mode=n
         while True:

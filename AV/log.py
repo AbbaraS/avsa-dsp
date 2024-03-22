@@ -11,31 +11,17 @@ path=f"/home/pi/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Data/{d}"
 if not os.path.exists(path):
     os.makedirs(path)
 
-#log_file = f"{path}\{t}.txt"
+log_file = f"{path}\{t}.txt"
 
 # u - ultrasoic
 # p - photoresistor
 # i - infrared
 
 
-def log(log_txt, m=None):
+def log(log_txt):
     now=datetime.datetime.now()
-    t2=now.strftime("%H-%M-%s")
-    write = True
-    if m == 'u':
-        file = 'ultrasonic'
-    elif m == 'p':
-        file = 'photoresistor'
-    elif m == 'i':
-        file = 'infrared'
-    elif m == 'b':
-        file = 'battery'
-    else:
-        file = 'general'
-        with open(f'{path}/{file}', "a") as file:
-            file.write(f'{t2}, {log_txt}\n')
-        write = False
+    now_time=now.strftime("%H:%M:%S")
+    with open(f'{path}/move.txt', "a") as file:
+        file.write(f'{now_time}, {log_txt}\n')
+
     
-    if write:
-        with open(f'{path}/{file}', "a") as file:
-            file.write(f'{t2}, {log_txt}\n')

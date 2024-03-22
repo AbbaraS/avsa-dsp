@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, '/home/pi/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Server')
 from log import log
 from sensor_fusion import SensorInput
-from battery import read_battery
+from battery import get_battery_percentage
 import datetime
 from Motor import *         
 import time
@@ -19,7 +19,7 @@ def task1():
     PWM=Motor() 
     try:
         while moveAV:
-            BV, BP = read_battery()
+            BP = get_battery_percentage()
             action, direction = si.sensor_fusion()
             
             if action == 'move':

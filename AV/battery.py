@@ -2,11 +2,9 @@ from ADC import Adc
 from log import log
 import datetime
 
-def read_battery():
+def get_battery_percentage():
     
     adc = Adc()
-    
-    #adc_value = adc.recvADC(2) #reading channel 2 for battery voltage
     
     full_charge_voltage = 8.4
     
@@ -18,11 +16,23 @@ def read_battery():
     
     percentage_left = max(0, min(100, percentage_left))
     
-    log(f'battery, {battery_voltage}, {percentage_left}')    
+    #print(f'battery percentage: {percentage_left}%')
     
-    return battery_voltage, percentage_left
+    log(f'battery percentage: {percentage_left}%')    
+    
+    return percentage_left
 
 
-#def read_battery_every_s(s):
+def get_battery_voltage():
+    
+    adc = Adc()
+    
+    battery_voltage = adc.recvADC(2) * 3 
+    
+    #log(f'battery voltage: {battery_voltage}')    
+    
+    return battery_voltage
+
+
     
     

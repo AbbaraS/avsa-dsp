@@ -11,8 +11,6 @@ import math
 import datetime
 from Led import *
 
-SPD = 800  # Speed of the robot, used in the various movement functions
-
 
 class AVState:
     '''
@@ -24,6 +22,7 @@ class AVState:
         self.making_decision = False
         self.line_lost_count = 0
         self.last_turn_dir = 1  # 1 = left, -1 = right
+        
     
 
 class RunAV:
@@ -34,6 +33,8 @@ class RunAV:
     def __init__(self):
         # AV State
         self.state = AVState()
+        self.options=[]
+        self.spd = 700  # Speed of the robot, used in the various movement functions
 
         # Infrared Sensors
         self.IR01 = 14  # Left
@@ -84,9 +85,7 @@ class RunAV:
         Moves the robot forward
         '''
         log("forward")
-        PWM.setMotorModel(SPD,SPD,SPD,SPD)
-        if self.state.making_decision:
-            self.state.making_decision = False
+        PWM.setMotorModel(self.spd,self.spd,self.spd,self.spd)
         
     def left(self):
         '''
@@ -94,7 +93,7 @@ class RunAV:
         '''
         #print("left")
         log("left")
-        PWM.setMotorModel(-int(SPD*0.75),-int(SPD*0.75),int(SPD*1.25),int(SPD*1.25))
+        PWM.setMotorModel(-int(self.spd*0.5),-int(self.spd*0.5),int(self.spd*1),int(self.spd*1))
     
     def sharp_left(self):
         '''
@@ -102,7 +101,7 @@ class RunAV:
         '''
         #print("sharp left")
         log("sharp left")
-        PWM.setMotorModel(-SPD, -SPD, SPD*2, SPD*2)
+        PWM.setMotorModel(-int(self.spd * 0.25), -int(self.spd * 0.25), self.spd*1, self.spd*1)
     
     def right(self):
         '''
@@ -110,7 +109,7 @@ class RunAV:
         '''
         #print("right")
         log("right")
-        PWM.setMotorModel(int(SPD*1.25),int(SPD*1.25), -int(SPD*0.75),-int(SPD*0.75))
+        PWM.setMotorModel(int(self.spd*1),int(self.spd*1), -int(self.spd*0.5),-int(self.spd*0.5))
     
     def sharp_right(self):
         '''
@@ -118,7 +117,7 @@ class RunAV:
         '''
         #print("sharp right")
         log("sharp right")
-        PWM.setMotorModel(SPD*2, SPD*2, -SPD, -SPD)
+        PWM.setMotorModel(self.spd*1, self.spd*1, -int(self.spd * 0.25), -int(self.spd * 0.25))
     
     def stop(self):
         '''
@@ -234,30 +233,47 @@ class RunAV:
         return  int(distance_cm[0])
         
     def check_us_LMR(self):
-        for i in range(45,166,60):
+        for i in range(31,180,37):
             self.pwm_S.setServoPwm('0',i)
-            time.sleep(0.5)
-            if i==45:
+            time.sleep(0.2)
+            if i==31:
                 L = self.get_distance()
-                log(f"L={L}")
+                log(f"L1={L}")
+            elif i == 68:
+                L2 = self.get_distance()
+                if L2 < L:
+                    L = L2
+                log(f"L2={L2}")
             elif i==105:
                 M = self.get_distance()
                 log(f"M={M}")
-            else:
+            elif i==142:
                 R = self.get_distance()
-                log(f"R={R}")
+                log(f"R1={R}")
+            else:
+                R2 = self.get_distance()
+                if R2 < R:
+                    R = R2
+                log(f"R2={R2}")
+        time.sleep(0.2)
         
         self.pwm_S.setServoPwm('0', 105)
+        time.sleep(0.05)
         return L, M, R
     
     ### PLANNING ###
     
-    def choose_direction(self, LMR):
+    def choose_direction(self):
         '''
         Choose the next direction for the robot to move based on the value of LMR
         (Left, Middle, Right from the IR sensors)
         '''
         self.state.avoiding_obstacle = False
+        LMR = self.read_IR_sensors()
+        
+        if LMR != 7:
+            self.state.making_decision = False
+            self.options = []
         
         if LMR==2: #2 is 010 - middle sensor detected the line
             return self.forward
@@ -270,8 +286,10 @@ class RunAV:
         elif LMR==3: #3 is 011 - right and middle sensors detected the line, so take a sharp right turn
             return self.sharp_right
         elif LMR==7 and not self.state.making_decision: #7 is 111 - all sensors detected the line, so desicion point
+            self.stop()
+            time.sleep(0.5)
             self.state.making_decision = True
-            return self.make_T_junction_decision()
+            return self.make_junction_decision()
             
         elif LMR == 0: # The robot's not detecting the line
             self.state.line_lost_count += 1
@@ -284,7 +302,10 @@ class RunAV:
             return None
     
     def get_best_direction(self):
+        self.pwm_S.setServoPwm('0',105)
+        time.sleep(0.01)
         M = self.get_distance()
+        log(f"gbd_M = {M}")
         if M > self.MIN_DISTANCE:
             self.avoiding_obstacle = False
             return None
@@ -292,8 +313,9 @@ class RunAV:
             self.avoiding_obstacle = True
             log("obstacle ahead...")
             self.stop()
+            time.sleep(1)
             L, M, R = self.check_us_LMR()    
-            time.sleep(0.05)
+            time.sleep(0.01)
             if M > self.MIN_DISTANCE:
                 self.avoiding_obstacle = False
                 return None
@@ -317,6 +339,70 @@ class RunAV:
             log("none")
             return None
     
+    def make_junction_decision(self):
+        #number of options = 3
+        log("making junction decision")
+        self.stop()
+        L, M, R = self.check_us_LMR()
+        
+        #eliminate worst option
+        
+        worst = ""
+        if L < M:
+            worst = "L"
+            self.options = ["M", "R"]
+            if L > R:
+                worst = "R"
+                self.options = ["L", "M"]
+        else:
+            worst = "M"
+            self.options = ["L", "R"]
+            if M > R:
+                worst = "R"
+                self.options = ["L", "M"]
+
+        log(f"eliminating worst option : {worst}")
+        #number of options = 2, choose best of two options
+        #number of options = 1
+
+        if worst == "M":
+            if L > R: 
+                self.options=["R"]
+                return self.rotate_left
+            elif R > L:
+                self.options=["L"]
+                return self.rotate_right
+        elif worst == "L":
+            if M > R:
+                self.options = ["R"]
+                self.state.last_turn_dir = -1
+                return self.choose_direction()
+            elif R > M:
+                self.options = ["M"]
+                return self.rotate_right
+        elif worst == "R":
+            if L > M:
+                self.options = ["M"]
+                return self.rotate_left
+            elif M > L:
+                self.options = ["L"]
+                self.state.last_turn_dir = 1
+                self.forward()
+                return self.choose_direction()
+        
+    def make_remaining_option(self):
+        log("making remaining decision")
+        self.state.making_decision=False
+        if self.options[0] == "M":
+            self.options = []
+            return self.forward
+        elif self.options[0] == "R":
+            self.options = []
+            return self.rotate_right
+        elif self.options[0] == "L":
+            self.options = []
+            return self.rotate_left
+    
     ### run ###
     
     def run(self):
@@ -325,21 +411,35 @@ class RunAV:
         self.pwm_S.setServoPwm('1', 110)
 
         self.battery_percentage = get_battery_percentage()
+        
+        self.spd = int(self.spd + (self.spd * (1 - (self.battery_percentage / 100))))
+        
+        log(f"speed: {self.spd}")
 
         while True:
-            
             move = self.get_best_direction()
-            if move is not None:
+            if move is not None and not self.state.making_decision:
                 move()
             else:
-                LMR = self.read_IR_sensors()
-                move = self.choose_direction(LMR)
+                if self.state.making_decision == True and len(self.options) == 1:
+                    move = self.make_remaining_option()
+                else:
+                    move = self.choose_direction()
+                    if len(self.options) == 1:
+                        self.state.making_decision = True
+                    elif len(self.options) == 0:
+                        self.state.making_decision = False
+                
                 if move is not None:
                     self.state.line_lost_count = 0
                     move()
 
-                    
-            time.sleep(0.01)
+            if self.state.making_decision:
+                log("sleeping .005")         
+                time.sleep(0.005)
+                self.stop()
+            else:
+                time.sleep(0.01)
         
         GPIO.cleanup()
            
@@ -355,7 +455,7 @@ if __name__ == '__main__':
         runAV.run()
     except KeyboardInterrupt:  # When 'Ctrl+C' is pressed, the child program  will be  executed.
         log("KeyboardInterrupt")
-        log(f"avoiding obstacle: {runAV.avoiding_obstacle}, making decision: {runAV.making_decision} , line lost count: {runAV.line_lost_count}")
+        log(f"avoiding obstacle: {runAV.state.avoiding_obstacle}, making decision: {runAV.state.making_decision} , line lost count: {runAV.state.line_lost_count}")
         GPIO.cleanup()
         runAV.pwm_S.setServoPwm('0', 105)
         runAV.pwm_S.setServoPwm('1', 110)

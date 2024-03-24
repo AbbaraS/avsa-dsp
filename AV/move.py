@@ -29,7 +29,7 @@ class AVState:
 class RunAV:
     '''
     Class Name: RunAV
-    Description: # do description
+    Description: Contains the AV navigation logic
     '''
     def __init__(self):
         # AV State
@@ -55,7 +55,9 @@ class RunAV:
         GPIO.setup(self.trigger_pin, GPIO.OUT)
         GPIO.setup(self.echo_pin, GPIO.IN)
         
-    ### indication ###
+    ### CONTROL ###
+    
+    ### Indication ###
     
     def indicate_left(self):
         self.led.colorWipe(self.led.strip, Color(0, 0, 0))
@@ -75,17 +77,7 @@ class RunAV:
         time.sleep(0.1)
         self.led.colorWipe(self.led.strip, Color(0,0,0))
     
-    ### infrared ###
-    
-    def read_IR_sensors(self):  # For Infrared
-        LMR = 0x00
-        if GPIO.input(self.IR01): LMR |= 4  # Left
-        if GPIO.input(self.IR02): LMR |= 2  # Middle
-        if GPIO.input(self.IR03): LMR |= 1  # Right
-        #log(f"LMR={LMR}")
-        return LMR
-    
-    ### movement ###
+    ### Movement ###
     
     def forward(self):
         '''
@@ -136,38 +128,7 @@ class RunAV:
         log("stop")
         PWM.setMotorModel(0, 0, 0, 0)
     
-    def choose_direction(self, LMR):
-        '''
-        Choose the next direction for the robot to move based on the value of LMR
-        (Left, Middle, Right from the IR sensors)
-        '''
-        self.state.avoiding_obstacle = False
-        
-        if LMR==2: #2 is 010 - middle sensor detected the line
-            return self.forward
-        elif LMR==4: #4 is 100 - left sensor detected the line, so turn left
-            return self.left
-        elif LMR==6: #6 is 110 - left and middle sensors detected the line, so take a sharp left turn
-            return self.sharp_left
-        elif LMR==1: #1 is 001 - right sensor detected the line, so turn right
-            return self.right
-        elif LMR==3: #3 is 011 - right and middle sensors detected the line, so take a sharp right turn
-            return self.sharp_right
-        elif LMR==7 and not self.state.making_decision: #7 is 111 - all sensors detected the line, so desicion point
-            self.state.making_decision = True
-            return self.make_T_junction_decision()
-            
-        elif LMR == 0: # The robot's not detecting the line
-            self.state.line_lost_count += 1
-            if self.state.line_lost_count >= 5: # The robot has definitely gone off the line
-                self.state.line_lost_count = 0
-                log("line not detected. rotating to find line. ")
-                return self.rotate_full
-            return None
-        else:
-            return None
-    
-    ### rotation ###
+    ### Rotation ###
     
     def rotate(self, target_angle, interrupt=False):
         '''
@@ -236,7 +197,15 @@ class RunAV:
     def rotate_full(self):
         self.rotate(360 * self.state.last_turn_dir, interrupt=True)
     
-    ### ultrasonic ###
+    #### PERCEPTION ###
+    
+    def read_IR_sensors(self):  # For Infrared
+        LMR = 0x00
+        if GPIO.input(self.IR01): LMR |= 4  # Left
+        if GPIO.input(self.IR02): LMR |= 2  # Middle
+        if GPIO.input(self.IR03): LMR |= 1  # Right
+        #log(f"LMR={LMR}")
+        return LMR    
     
     def pulseIn(self, pin, level, timeOut):  # For Ultrasonic
         t0 = time.time()
@@ -280,6 +249,39 @@ class RunAV:
         
         self.pwm_S.setServoPwm('0', 105)
         return L, M, R
+    
+    ### PLANNING ###
+    
+    def choose_direction(self, LMR):
+        '''
+        Choose the next direction for the robot to move based on the value of LMR
+        (Left, Middle, Right from the IR sensors)
+        '''
+        self.state.avoiding_obstacle = False
+        
+        if LMR==2: #2 is 010 - middle sensor detected the line
+            return self.forward
+        elif LMR==4: #4 is 100 - left sensor detected the line, so turn left
+            return self.left
+        elif LMR==6: #6 is 110 - left and middle sensors detected the line, so take a sharp left turn
+            return self.sharp_left
+        elif LMR==1: #1 is 001 - right sensor detected the line, so turn right
+            return self.right
+        elif LMR==3: #3 is 011 - right and middle sensors detected the line, so take a sharp right turn
+            return self.sharp_right
+        elif LMR==7 and not self.state.making_decision: #7 is 111 - all sensors detected the line, so desicion point
+            self.state.making_decision = True
+            return self.make_T_junction_decision()
+            
+        elif LMR == 0: # The robot's not detecting the line
+            self.state.line_lost_count += 1
+            if self.state.line_lost_count >= 5: # The robot has definitely gone off the line
+                self.state.line_lost_count = 0
+                log("line not detected. rotating to find line. ")
+                return self.rotate_full
+            return None
+        else:
+            return None
     
     def get_best_direction(self):
         M = self.get_distance()

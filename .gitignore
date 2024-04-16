@@ -1,3 +1,5 @@
 /Data
 /.git-old
 **/__pycache__/
+/.git-*
+/.venv

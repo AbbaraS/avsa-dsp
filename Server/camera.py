@@ -1,5 +1,14 @@
-from picamera2 import Picamera2
-picam2 = Picamera2()
-picam2.close()
-picam2.start_and_capture_file("image2.jpg")
-picam2.close()
+
+from picamera import Picamera
+import datetime
+import os
+import time
+import libcamera
+
+
+
+picam2 = Picamera()
+#picam2.start_and_capture_file("cam1.jpg",delay=0,show_preview=False)
+#picam2.stop()
+
+

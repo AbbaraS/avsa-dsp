@@ -1,6 +1,5 @@
-
-
-
+from log import log
+from MotorModule import *
 
 class Vehicle:
     '''
@@ -11,7 +10,61 @@ class Vehicle:
         self.state = AVState()
         self.options=[]
         self.spd = 700  # Speed of the robot, used in the various movement functions
+        self.motorMod = MotorModule()
 
+    def forward(self):
+        '''
+        Moves the robot forward
+        '''
+        log("forward")
+        self.motorMod.set_motor_model(self.spd,self.spd,self.spd,self.spd)
+    
+    def backward(self):
+        '''
+        Moves the robot backward
+        '''
+        log("forward")
+        self.motorMod.set_motor_model(-self.spd,-self.spd,-self.spd,-self.spd)
+        
+    def left(self):
+        '''
+        Moves the robot left
+        '''
+        #print("left")
+        log("left")
+        self.motorMod.set_motor_model(-int(self.spd*0.5),-int(self.spd*0.5),int(self.spd*1),int(self.spd*1))
+    
+    def sharp_left(self):
+        '''
+        Moves the robot sharply left
+        '''
+        #print("sharp left")
+        log("sharp left")
+        self.motorMod.set_motor_model(-int(self.spd * 0.25), -int(self.spd * 0.25), self.spd*1, self.spd*1)
+    
+    def right(self):
+        '''
+        Moves the robot right
+        '''
+        #print("right")
+        log("right")
+        self.motorMod.set_motor_model(int(self.spd*1),int(self.spd*1), -int(self.spd*0.5),-int(self.spd*0.5))
+    
+    def sharp_right(self):
+        '''
+        Moves the robot sharply right
+        '''
+        #print("sharp right")
+        log("sharp right")
+        self.motorMod.set_motor_model(self.spd*1, self.spd*1, -int(self.spd * 0.25), -int(self.spd * 0.25))
+    
+    def stop(self):
+        '''
+        Stops the robot
+        '''
+        #print("stop")
+        log("stop")
+        self.motorMod.set_motor_model(0, 0, 0, 0)
     
     def choose_direction(self):
         '''

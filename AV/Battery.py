@@ -2,7 +2,7 @@ from ADC import Adc
 from log import log
 import datetime
 
-class battery:
+class Battery:
     def __init__(self):
         self.full_charge_voltage = 8.4
         self.min_voltage = 6.0
@@ -31,11 +31,11 @@ class battery:
         gets the available battery voltage
         '''
         
-        get_battery_voltage = self.adc.recvADC(2) * 3
+        battery_voltage = self.adc.recvADC(2) * 3
 
         #log(f'battery voltage: {get_battery_voltage}')    
 
-        return get_battery_voltage
+        return battery_voltage
 
 
     

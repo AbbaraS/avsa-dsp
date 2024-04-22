@@ -1,5 +1,9 @@
 from log import log
 from MotorModule import *
+from VehicleState import *
+from InfraredModule import *
+from UltrasonicModule import *
+from CameraModule import *
 
 class Vehicle:
     '''
@@ -7,10 +11,12 @@ class Vehicle:
     '''
     def __init__(self):
         # AV State
-        self.state = AVState()
-        self.options=[]
+        self.state = VehicleState()
+        self.paths=[]
         self.spd = 700  # Speed of the robot, used in the various movement functions
         self.motorMod = MotorModule()
+        self.IR = InfraredModule()
+        self.CamMod = CameraModule()
 
     def forward(self):
         '''
@@ -71,12 +77,12 @@ class Vehicle:
         Choose the next direction for the robot to move based on the value of LMR
         (Left, Middle, Right from the IR sensors)
         '''
-        self.state.avoiding_obstacle = False
-        LMR = self.read_IR_sensors()
+        self.state.avoiding_obstacle = False # set vehicle state
+        LMR = self.IR.read_IR() # read IR
         
-        if LMR != 7:
+        if LMR != 7: # if not at a junction
             self.state.making_decision = False
-            self.options = []
+            self.paths = [] 
         
         if LMR==2: #2 is 010 - middle sensor detected the line
             return self.forward
@@ -91,10 +97,9 @@ class Vehicle:
         elif LMR==7 and not self.state.making_decision: #7 is 111 - all sensors detected the line, so desicion point
             self.stop()
             time.sleep(0.5)
-            img_path = self.capture_point()
-            paths_ahead = self.process_image(img_path)
+            paths_ahead = self.CamMod.process_image()
             self.state.making_decision = True
-            return self.make_junction_decision()
+            return self.make_junction_decision(paths_ahead)
             
         elif LMR == 0: # The robot's not detecting the line
             self.state.line_lost_count += 1
@@ -146,7 +151,7 @@ class Vehicle:
             return None
         
         
-    def make_junction_decision(self):
+    def make_junction_decision(self, n_paths):
         #number of options = 3
         log("making junction decision")
         self.stop()

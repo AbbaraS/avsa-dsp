@@ -7,15 +7,14 @@ class Battery:
         self.full_charge_voltage = 8.4
         self.min_voltage = 6.0
         self.adc = Adc()
-        self.battery_voltage = self.get_battery_voltage()
     
 
-    def get_battery_percentage():
+    def get_battery_percentage(self):
         ''' 
         gets the remaining battery percentage
         '''
 
-        percentage_left = ((self.battery_voltage - self.min_voltage) / (self.full_charge_voltage - self.min_voltage)) * 100
+        percentage_left = ((self.get_battery_voltage() - self.min_voltage) / (self.full_charge_voltage - self.min_voltage)) * 100
 
         percentage_left = max(0, min(100, percentage_left))
 
@@ -26,7 +25,7 @@ class Battery:
         return percentage_left
 
 
-    def get_battery_voltage():
+    def get_battery_voltage(self):
         ''' 
         gets the available battery voltage
         '''

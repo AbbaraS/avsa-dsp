@@ -24,19 +24,16 @@ class MotorModule:
         If target_angle > 0, rotate left, otherwise rotate right
         If interrupt = True, the rotation will stop early if the line is found
         '''
-        log(f"start rotation")
-        angle_rotated = 0
-        degrees_per_iteration = 5
+        angle_rotated = 0 # set angle rotated
+        degrees_per_iteration = 5 #increments by 5 each iteration
         time_to_rotate = 2 * degrees_per_iteration * self.motor_time_proportion * self.battery_compensation / 1000
-        rotation_direction = 1 if target_angle  > 0 else -1 
-        angle = rotation_direction * degrees_per_iteration
+        rotation_direction = 1 if target_angle  > 0 else -1 # set rotation direction
+        angle = rotation_direction * degrees_per_iteration 
         
         VY = int(self.W * math.cos(math.radians(angle)))  # Y velocity
         VX = -int(self.W * math.sin(math.radians(angle)))  # X velocity
-        
         FL = 0-(VY + VX) - self.W  # Front left wheel velocity
         BL = 0-(VY - VX) - self.W  # Back left wheel velocity
-        
         FR = VY - VX + self.W  # Front right wheel velocity
         BR = VY + VX + self.W  # Back right wheel velocity
         
@@ -45,18 +42,19 @@ class MotorModule:
             BL = -BL
             FR = -FR
             BR = -BR
-        
+
+        # while target angle is not reached
         while abs(angle_rotated) < abs(target_angle):
-            self.set_motor_model(FL, BL, FR, BR)
-            time.sleep(time_to_rotate)
-            angle_rotated += rotation_direction * degrees_per_iteration
-            if interrupt and abs(angle_rotated) > 25:
+            self.set_motor_model(FL, BL, FR, BR) # set the motor model 
+            time.sleep(time_to_rotate) 
+            angle_rotated += rotation_direction * degrees_per_iteration # increment rotated angle
+            if interrupt and abs(angle_rotated) > 25: # check if line is detected
                 LMR = self.IR.read_IR()
                 if LMR != 0x00:
                     self.stop()
                     self.state.avoiding_obstacle = False
                     log("line found. stopping rotation. ")
-                    # If the robot has rotated ~180 degrees then we assume it reached the end of the path, so quit the program
+                    # if the robot has rotated ~180 degrees then we assume it reached the end of the path, so quit the program
                     if 200 >= abs(angle_rotated) >= 150:
                         log(f"exiting at rotated angle {angle_rotated}")
                         GPIO.cleanup()

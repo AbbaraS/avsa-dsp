@@ -6,13 +6,13 @@ import time
 from log import log
 from servo import *
 from Motor import *  
-from battery import *
+from Battery import *
 import math
 import datetime
 from Led import *
-import cv2
+#import cv2
 import numpy as np
-from picamera2 import Picamera2
+#from picamera2 import Picamera2
 
 class AVState:
     '''
@@ -37,6 +37,7 @@ class RunAV:
         self.state = AVState()
         self.options=[]
         self.spd = 700  # Speed of the robot, used in the various movement functions
+        self.battery = Battery()
 
         # Infrared Sensors
         self.IR01 = 14  # Left
@@ -139,7 +140,7 @@ class RunAV:
         '''
         log(f"start rotation")
         angle_rotated = 0
-        bat_compensation = 7.5/get_battery_voltage()
+        bat_compensation = 7.5/self.battery.get_battery_voltage()
         degrees_per_iteration = 5
         motor_time_proportion = 2 # Can change this
         time_to_rotate = 2 * degrees_per_iteration * motor_time_proportion * bat_compensation / 1000
@@ -263,33 +264,33 @@ class RunAV:
         time.sleep(0.05)
         return L, M, R
     
-    def capture_point(self):
-        now=datetime.datetime.now()
-        runAV.pwm_S.setServoPwm('1', 80)
-        d=now.strftime("%Y-%m-%d")
-        t=now.strftime("%H-%M-%S")
-        path=f"/home/pi/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Data/{d}"
-        camera = Picamera2()
-        camera.start_and_capture_file(f"{path}/{t}.jpg")
-        image_path = f"{path}/{t}.jpg"
-        runAV.pwm_S.setServoPwm('1', 110)
-        return image_path
+    #def capture_point(self):
+    #    now=datetime.datetime.now()
+    #    runAV.pwm_S.setServoPwm('1', 80)
+    #    d=now.strftime("%Y-%m-%d")
+    #    t=now.strftime("%H-%M-%S")
+    #    path=f"/home/pi/Freenove_4WD_Smart_Car_Kit_for_Raspberry_Pi/Code/Data/{d}"
+    #    camera = Picamera2()
+    #    camera.start_and_capture_file(f"{path}/{t}.jpg")
+    #    image_path = f"{path}/{t}.jpg"
+    #    runAV.pwm_S.setServoPwm('1', 110)
+    #    return image_path
     
-    def process_image(self, image_path):
-        # load image in grayscale
-        img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        _ , binary_image = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY_INV)
-        
-        #find contours in the binary image
-        contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        
-        #F  find number of paths
-        paths = [cnt for cnt in contours if cv2.contourArea(cnt) > 100]
-        
-        num_paths = len(paths)
-        
-        log(f"paths found: {num_paths} - image path: {image_path}")
-        return num_paths
+    #def process_image(self, image_path):
+    #    # load image in grayscale
+    #    img = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    #    _ , binary_image = cv2.threshold(img, 200, 255, cv2.THRESH_BINARY_INV)
+    #    
+    #    #find contours in the binary image
+    #    contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #    
+    #    #F  find number of paths
+    #    paths = [cnt for cnt in contours if cv2.contourArea(cnt) > 100]
+    #    
+    #    num_paths = len(paths)
+    #    
+    #    log(f"paths found: {num_paths} - image path: {image_path}")
+    #    return num_paths
     
     ### PLANNING ###
     
@@ -318,8 +319,8 @@ class RunAV:
         elif LMR==7 and not self.state.making_decision: #7 is 111 - all sensors detected the line, so desicion point
             self.stop()
             time.sleep(0.5)
-            img_path = self.capture_point()
-            paths_ahead = self.process_image(img_path)
+            #img_path = self.capture_point()
+            #paths_ahead = self.process_image(img_path)
             self.state.making_decision = True
             return self.make_junction_decision()
             
@@ -442,7 +443,7 @@ class RunAV:
         self.pwm_S.setServoPwm('0', 105)
         self.pwm_S.setServoPwm('1', 110)
 
-        self.battery_percentage = get_battery_percentage()
+        self.battery_percentage = self.battery.get_battery_percentage()
         
         self.spd = int(self.spd + (self.spd * (1 - (self.battery_percentage / 100))))
         
